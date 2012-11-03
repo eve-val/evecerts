@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% set title = "My API Keys" %}
+{% block content %}
+    {% for key in keys %}
+    <div class="row">
+      <div class="span2">{{ key.id }}</div>
+      <div class="span8">{{ key.characters }}</div>
+      <div class="span1">
+        <a href="/apikeys?action=refresh&id={{ key.id }}">Refresh</a>
+      </div>
+      <div class="span1">
+        <a href="/apikeys?action=remove&id={{ key.id }}">Remove</a>
+      </div>
+    </div>
+    {% endfor %}
+
+    <hr />
+
+    <form action="/apikeys" method="POST" class="form-inline">
+    <fieldset>
+      <legend>Add a new key</legend>
+
+      <input id="new_key_id" name="id" class="input-small"
+        type="text" placeholder="Key ID" />
+
+      <input id="new_key_vcode" name="vcode" class="input-xxlarge"
+        type="text" placeholder="Verification Code" />
+
+      <input type="submit" value="Add Key" class="btn" />
+
+      <input type="hidden" name="action" value="add" />
+    </fieldset>
+    </form>
+{% endblock %}

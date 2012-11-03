@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% set title = "My Certifications" %}
+{% block content %}
+{% for cert in certs %}
+<div class="row">
+  <div class="span7">
+    <a href="/certs?action=edit&id={{ cert.id }}">{{ cert.name }}</a>
+  </div>
+  <div class="span2">{{ cert.skills }}</div>
+  <div class="span2">{{ cert.modified }}</div>
+  <div class="span1">
+    <a href="/certs?action=remove&id={{ cert.id }}">Remove</a>
+  </div>
+</div>
+{% endfor %}
+
+<hr />
+
+<form action="/certs" method="POST" class="form-inline">
+<fieldset>
+  <legend>Add a new certification</legend>
+
+  <input id="new_cert_name" name="name" class="input-xxlarge"
+    type="text" placeholder="Certification name" />
+
+  <input type="submit" value="Add Certification" class="btn" />
+
+  <input type="hidden" name="action" value="add" />
+</fieldset>
+</form>
+{% endblock %}

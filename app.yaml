@@ -1,0 +1,31 @@
+application: evecerts
+version: 1
+runtime: python27
+threadsafe: yes
+api_version: 1
+
+libraries:
+- name: jinja2
+  version: latest
+
+handlers:
+- url: /css
+  static_dir: static/css
+- url: /img
+  static_dir: static/img
+- url: /js
+  static_dir: static/js
+
+- url: /apikeys
+  script: main.application
+  login: required
+- url: /certs
+  script: main.application
+  login: required
+
+- url: /skilltree
+  script: main.application
+  login: admin
+
+- url: /.*
+  script: main.application
