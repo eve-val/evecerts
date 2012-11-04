@@ -1,2 +1,20 @@
 {% extends "base.html" %}
 {% set title = "EVE Certifications" %}
+{% block pagetitle %}{% endblock %}
+{% block content %}
+<div class="hero-unit">
+<h1>Certifications made useful.</h1>
+<p>EVECerts lets you make your own certifications, and check
+your characters' progress against certifications that you and
+others have made.</p>
+<hr />
+<p>
+  <a class="btn btn-primary btn-large" href="/certs">
+    Create Certifications
+  </a>
+  <a class="btn btn-primary btn-large" href="/apikeys">
+    Import Your Characters
+  </a>
+</p>
+</div>
+{% endblock %}
