@@ -1,18 +1,30 @@
 {% extends "base.html" %}
 {% set title = "My Certifications" %}
 {% block content %}
-{% for cert in certs %}
-<div class="row">
-  <div class="span7">
-    <a href="/certs?action=edit&id={{ cert.id }}">{{ cert.name }}</a>
-  </div>
-  <div class="span2">{{ cert.skills }}</div>
-  <div class="span2">{{ cert.modified }}</div>
-  <div class="span1">
-    <a href="/certs?action=remove&id={{ cert.id }}">Remove</a>
-  </div>
-</div>
-{% endfor %}
+<table class="table table-hover">
+  <thead>
+    <tr>
+      <th>Certification Name</th>
+      <th># of Skills</th>
+      <th>Last Modified</th>
+      <th>&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for cert in certs %}
+    <tr>
+      <td>
+        <a href="/certs?action=edit&id={{ cert.id }}">{{ cert.name }}</a>
+      </td>
+      <td>{{ cert.skills }}</td>
+      <td>{{ cert.modified }}</td>
+      <td>
+        <a href="/certs?action=remove&id={{ cert.id }}">Remove</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
 
 <hr />
 

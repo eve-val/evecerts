@@ -1,34 +1,46 @@
 {% extends "base.html" %}
 {% set title = "My API Keys" %}
 {% block content %}
+<table class="table table-hover">
+  <thead>
+    <tr>
+      <th>Key ID</th>
+      <th>Characters</th>
+      <th>&nbsp;</th>
+      <th>&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
     {% for key in keys %}
-    <div class="row">
-      <div class="span2">{{ key.id }}</div>
-      <div class="span8">{{ key.characters }}</div>
-      <div class="span1">
+    <tr>
+      <td>{{ key.id }}</td>
+      <td>{{ key.characters }}</td>
+      <td>
         <a href="/apikeys?action=refresh&id={{ key.id }}">Refresh</a>
-      </div>
-      <div class="span1">
+      </td>
+      <td>
         <a href="/apikeys?action=remove&id={{ key.id }}">Remove</a>
-      </div>
-    </div>
+      </td>
+    </tr>
     {% endfor %}
+  </tbody>
+</table>
 
-    <hr />
+<hr />
 
-    <form action="/apikeys" method="POST" class="form-inline">
-    <fieldset>
-      <legend>Add a new key</legend>
+<form action="/apikeys" method="POST" class="form-inline">
+<fieldset>
+  <legend>Add a new key</legend>
 
-      <input id="new_key_id" name="id" class="input-small"
-        type="text" placeholder="Key ID" />
+  <input id="new_key_id" name="id" class="input-small"
+    type="text" placeholder="Key ID" />
 
-      <input id="new_key_vcode" name="vcode" class="input-xxlarge"
-        type="text" placeholder="Verification Code" />
+  <input id="new_key_vcode" name="vcode" class="input-xxlarge"
+    type="text" placeholder="Verification Code" />
 
-      <input type="submit" value="Add Key" class="btn" />
+  <input type="submit" value="Add Key" class="btn" />
 
-      <input type="hidden" name="action" value="add" />
-    </fieldset>
-    </form>
+  <input type="hidden" name="action" value="add" />
+</fieldset>
+</form>
 {% endblock %}

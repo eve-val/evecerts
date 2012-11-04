@@ -174,6 +174,7 @@ class APIKeysHandler(webapp2.RequestHandler):
 class SkillTreeHandler(webapp2.RequestHandler):
 
   SKILL_TREE_CACHE_KEY = 'skill-tree-1'
+  SKILL_NAMES_CACHE_KEY = 'skill-names-1'
 
   def get(self):
     skilltree = models.SkillTree.all().get()
@@ -181,7 +182,7 @@ class SkillTreeHandler(webapp2.RequestHandler):
     elink_api = elink_appengine.AppEngineAPI()
     elink_eve = evelink.eve.EVE(api=elink_api)
     treedata = elink_eve.skill_tree()
-    memcache.set(self.SKILL_TREE_CACHE_KEY, treedata)
+    SkillTreeHandler.cache_skill_data(treedata)
 
     if skilltree:
       skilltree.json_data = json.dumps(treedata)
@@ -192,6 +193,29 @@ class SkillTreeHandler(webapp2.RequestHandler):
     self.response.out.write("Successfully retrieved skills for %d groups." %
       len(treedata))
 
+  @classmethod
+  def cache_skill_data(cls, treedata):
+    memcache.set(cls.SKILL_TREE_CACHE_KEY, treedata)
+    cls.get_skill_data()
+
+  @classmethod
+  def get_skill_data(cls):
+    treedata = memcache.get(cls.SKILL_TREE_CACHE_KEY)
+    if not treedata:
+      skilltree = models.SkillTree.all().get()
+      treedata = json.loads(skilltree.json_data)
+      memcache.set(cls.SKILL_TREE_CACHE_KEY, treedata)
+
+    skill_names = memcache.get(cls.SKILL_NAMES_CACHE_KEY)
+    if not skill_names:
+      skill_names = {}
+      for skillgroup in treedata.itervalues():
+        for skill in skillgroup['skills'].itervalues():
+          skill_names[skill['id']] = skill['name']
+      memcache.set(cls.SKILL_NAMES_CACHE_KEY, skill_names)
+
+    return treedata, skill_names
+
 class CertificationsHandler(webapp2.RequestHandler):
 
   CERT_LIST_CACHE_KEY_FORMAT = "cert-list-1-%s"
@@ -199,7 +223,22 @@ class CertificationsHandler(webapp2.RequestHandler):
   def get(self):
     action = self.request.get('action')
 
+    if action == 'edit':
+      return self.edit_cert()
+    if action == 'removeskill':
+      return self.remove_skill()
+
     return self.list_certs()
+
+  def post(self):
+    action = self.request.get('action')
+
+    if action == 'add':
+      return self.add_cert()
+    elif action == 'addskill':
+      return self.add_skill()
+
+    self.error(500)
 
   def list_certs(self):
     user = users.get_current_user()
@@ -223,11 +262,215 @@ class CertificationsHandler(webapp2.RequestHandler):
 
     self.response.out.write(page)
 
+  def add_cert(self):
+    name = self.request.get('name')
+
+    if not (3 < len(name) < 101):
+      self.error(500)
+      return self.response.out.write("Name is too long or too short."
+        " Please press Back and enter a name between 4 and 100 characters.")
+
+    user = users.get_current_user()
+
+    cert = models.Certification(name=name, owner=user)
+    cert.put()
+
+    mc_key = self.CERT_LIST_CACHE_KEY_FORMAT % user.user_id()
+    memcache.delete(mc_key)
+
+    self.redirect("/certs?action=edit&id=%d" % cert.key().id())
+
+  def edit_cert(self):
+    user = users.get_current_user()
+    cert_id = int(self.request.get('id'))
+
+    cert = models.Certification.get_by_id(cert_id)
+    if not cert or cert.owner != user:
+      return self.error(403)
+
+    skill_tree, skill_names = SkillTreeHandler.get_skill_data()
+
+    skills = []
+    for skill in cert.required_skills:
+      skills.append({
+        'name': skill_names[skill.skill_id],
+        'rank': skill.level,
+        'id': skill.skill_id,
+      })
+
+    skillgroups = []
+    for group in skill_tree.itervalues():
+      s = [s for s in group['skills'].itervalues() if s['published']]
+      if not s:
+        continue
+      skillgroup = {
+        'name': group['name'],
+        'skills': sorted(s, key=lambda x: x['name'])
+      }
+      skillgroups.append(skillgroup)
+    skillgroups.sort(key=lambda x: x['name'])
+
+    data = {
+      'cert': cert,
+      'skills': skills,
+      'skillgroups': skillgroups,
+    }
+
+    template = jinja_environment.get_template("edit_cert.html")
+    page = template.render(data)
+
+    self.response.out.write(page)
+
+  def add_skill(self):
+    user = users.get_current_user()
+    cert_id = int(self.request.get('id'))
+    skill_id = int(self.request.get('skillid'))
+    rank = int(self.request.get('rank'))
+
+    cert = models.Certification.get_by_id(cert_id)
+    if not cert or cert.owner != user:
+      return self.error(403)
+
+    skill_tree, skill_names = SkillTreeHandler.get_skill_data()
+
+    if skill_id not in skill_names:
+      return self.error(500)
+
+    if not (0 < rank < 6):
+      return self.error(500)
+
+    for required_skill in cert.required_skills:
+      if required_skill.skill_id == skill_id:
+        if required_skill.level < rank:
+          required_skill.level = rank
+          required_skill.put()
+        return self.redirect("/certs?action=edit&id=%d" % cert_id)
+
+    required_skill = models.RequiredSkill(
+      skill_id=skill_id, level=rank, cert=cert)
+    required_skill.put()
+
+    return self.redirect("/certs?action=edit&id=%d" % cert_id)
+
+  def remove_skill(self):
+    user = users.get_current_user()
+    cert_id = int(self.request.get('id'))
+    skill_id = int(self.request.get('skillid'))
+
+    cert = models.Certification.get_by_id(cert_id)
+    if not cert or cert.owner != user:
+      return self.error(403)
+
+    for skill in cert.required_skills:
+      if skill.skill_id == skill_id:
+        skill.delete()
+        break
+
+    return self.redirect("/certs?action=edit&id=%d" % cert_id)
+
+class ProgressHandler(webapp2.RequestHandler):
+
+  ranks = {
+    -1: '-',
+    0: 'Injected',
+    1: '1',
+    2: '2',
+    3: '3',
+    4: '4',
+    5: '5',
+  }
+
+  def get(self):
+    try:
+      cert_id = int(self.request.get('id'))
+    except (ValueError, TypeError):
+      return self.error(404)
+
+
+    self.show_cert(cert_id)
+
+  def show_cert(self, cert_id):
+    cert = models.Certification.get_by_id(cert_id)
+    if not cert:
+      return self.error(404)
+
+    user = users.get_current_user()
+    if user:
+      characters = []
+      keys = models.APIKey.all().filter("owner =", user)
+      for key in keys:
+        characters.extend(key.character_set)
+      characters.sort()
+    else:
+      characters = []
+
+    skill_tree, skill_names = SkillTreeHandler.get_skill_data()
+
+    skills = []
+    for skill in cert.required_skills:
+      skills.append({
+        'name': skill_names[skill.skill_id],
+        'rank': skill.level,
+        'id': skill.skill_id,
+      })
+
+    data = {
+      'cert': cert,
+      'characters': characters,
+      'skills': skills,
+    }
+
+    char_id = self.request.get('character')
+    if char_id:
+      char_id = int(char_id)
+      return self.show_cert_progress(data, char_id)
+
+    template = jinja_environment.get_template("view_cert.html")
+    page = template.render(data)
+    self.response.out.write(page)
+
+  def show_cert_progress(self, data, char_id):
+    character = None
+    for char in data['characters']:
+      if char.char_id == char_id:
+        character = char
+        break
+
+    if character is None:
+      return self.error(403)
+
+    key = character.api_key
+
+    elink_api = elink_appengine.AppEngineAPI(api_key=(key.key_id, key.vcode))
+    elink_char = evelink.char.Char(character.char_id, api=elink_api)
+    charsheet = elink_char.character_sheet()
+
+    skill_to_rank = {}
+    for skill in charsheet['skills']:
+      skill_to_rank[skill['id']] = skill['level']
+
+    for skill in data['skills']:
+      skill['trained_rank'] = skill_to_rank.get(skill['id'], -1)
+      skill['display_rank'] = self.ranks[skill['trained_rank']]
+      if skill['trained_rank'] > skill['rank']:
+        skill['row_class'] = 'success'
+      elif skill['trained_rank'] > 0:
+        skill['row_class'] = 'warning'
+      else:
+        skill['row_class'] = 'error'
+
+    data['active_character'] = character
+
+    template = jinja_environment.get_template("view_cert.html")
+    page = template.render(data)
+    self.response.out.write(page)
+
 application = webapp2.WSGIApplication(
   [
     ('/apikeys', APIKeysHandler),
     ('/certs', CertificationsHandler),
     ('/skilltree', SkillTreeHandler),
+    ('/progress', ProgressHandler),
     ('/', HomeHandler),
   ],
   debug=True,

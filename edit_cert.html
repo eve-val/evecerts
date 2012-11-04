@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% set title = cert.name %}
+{% block content %}
+<table class="table table-hover">
+  <thead>
+    <tr>
+      <th>Skill</th>
+      <th>Required Rank</th>
+      <th>&nbsp;</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for skill in skills %}
+    <tr>
+      <td>{{ skill.name }}</td>
+      <td>{{ skill.rank }}</td>
+      <td>
+        <a href="/certs?action=removeskill&id={{ cert.key().id() }}&skillid={{ skill.id }}">Remove</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<hr />
+
+<form action="/certs" method="POST" class="form-inline">
+<fieldset>
+  <legend>Add a new requirement</legend>
+
+  <select name="skillid" class="input-xxlarge">
+    {% for skillgroup in skillgroups %}
+    <optgroup label="{{ skillgroup.name }}">
+      {% for skill in skillgroup.skills %}
+      {% if skill.published %}
+      <option value="{{ skill.id }}">{{ skill.name }}</option> 
+      {% endif %}
+      {% endfor %}
+    </optgroup>
+    {% endfor %}
+  </select>
+
+  <select name="rank" class="input-medium">
+    <option value="1">Rank 1</option>
+    <option value="2">Rank 2</option>
+    <option value="3">Rank 3</option>
+    <option value="4">Rank 4</option>
+    <option value="5">Rank 5</option>
+  </select>
+
+  <input type="submit" value="Add Requirement" class="btn" />
+
+  <input type="hidden" name="id" value="{{ cert.key().id() }}" />
+  <input type="hidden" name="action" value="addskill" />
+</fieldset>
+</form>
+<p>Adding a requirement for a skill that has an existing requirement will take the higher of the two required ranks.</p>
+{% endblock %}
