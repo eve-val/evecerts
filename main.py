@@ -359,11 +359,11 @@ class CertificationsHandler(webapp2.RequestHandler):
         if required_skill.level < rank:
           required_skill.level = rank
           required_skill.put()
-        return self.redirect("/certs?action=edit&id=%d" % cert_id)
-
-    required_skill = models.RequiredSkill(
-      skill_id=skill_id, level=rank, cert=cert)
-    required_skill.put()
+        break
+    else:
+      required_skill = models.RequiredSkill(
+        skill_id=skill_id, level=rank, cert=cert)
+      required_skill.put()
 
     memcache.delete(self.CERT_SKILLS_CACHE_KEY_FORMAT % cert_id)
 
