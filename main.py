@@ -149,6 +149,11 @@ class APIKeysHandler(webapp2.RequestHandler):
     elink_account = evelink.account.Account(api=elink_api)
     info = elink_account.key_info()
 
+    if not (info['access_mask'] & 8):
+      self.error(500)
+      return self.response.out.write(
+        "This key does not have Character Sheet access, which is required.")
+
     retrieved_characters = info['characters']
     existing_characters = list(key.character_set)
 
@@ -463,19 +468,36 @@ class CertificationHandler(webapp2.RequestHandler):
     for skill in charsheet['skills']:
       skill_to_rank[skill['id']] = skill['level']
 
+    totals = {
+      'overall': 0,
+      'green': 0,
+      'yellow': 0,
+      'red': 0,
+    }
+
     for skill in data['skills']:
+      totals['overall'] += 1
       skill['trained_rank'] = skill_to_rank.get(skill['id'], -1)
       skill['display_rank'] = self.ranks[skill['trained_rank']]
       if skill['trained_rank'] >= skill['rank']:
         skill['row_class'] = 'success'
+        totals['green'] += 1
       elif skill['trained_rank'] > 0:
         skill['row_class'] = 'warning'
+        totals['yellow'] += 1
       elif skill['trained_rank'] == 0:
         skill['row_class'] = 'warning'
+        totals['yellow'] += 1
       else:
         skill['row_class'] = 'error'
 
+    percents = {
+      'green': 100 * totals['green'] / totals['overall'],
+      'yellow': 100 * totals['yellow'] / totals['overall'],
+    }
+
     data['active_character'] = character
+    data['percents'] = percents
 
     template = jinja_environment.get_template("view_cert.html")
     page = template.render(data)

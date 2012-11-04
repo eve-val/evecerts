@@ -28,6 +28,19 @@
 progress towards completing this certification.</p>
 {% endif %}
 <hr />
+{% if percents %}
+<div class="row">
+  <div class="progress offset1 span8">
+    <div class="bar bar-success" style="width:{{ percents['green'] }}%;"></div>
+    <div class="bar bar-warning" style="width:{{ percents['yellow'] }}%;"></div>
+  </div>
+  <div class="span2">
+    <span class="well well-small">
+      <strong>{{ percents['green'] }}% Complete</strong>
+    </span>
+  </div>
+</div>
+{% endif %}
 <table class="table table-hover">
   <thead>
     <tr>
