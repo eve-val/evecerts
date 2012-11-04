@@ -511,5 +511,5 @@ application = webapp2.WSGIApplication(
     ('/cert', CertificationHandler),
     ('/', HomeHandler),
   ],
-  debug=True,
+  debug=os.environ.get('SERVER_SOFTWARE', '').startswith('Dev'),
 )
