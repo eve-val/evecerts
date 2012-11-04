@@ -196,7 +196,7 @@ class SkillTreeHandler(webapp2.RequestHandler):
   @classmethod
   def cache_skill_data(cls, treedata):
     memcache.set(cls.SKILL_TREE_CACHE_KEY, treedata)
-    memcache.delete(CertificationsHandler.SKILL_GROUP_CACHE_KEY)
+    memcache.delete(CertificationsHandler.SKILL_GROUPS_CACHE_KEY)
     cls.get_skill_data()
 
   @classmethod
