@@ -8,16 +8,20 @@
       <th># of Skills</th>
       <th>Last Modified</th>
       <th>&nbsp;</th>
+      <th>&nbsp;</th>
     </tr>
   </thead>
   <tbody>
     {% for cert in certs %}
     <tr>
       <td>
-        <a href="/certs?action=edit&id={{ cert.id }}">{{ cert.name }}</a>
+        <a href="/cert?id={{ cert.id }}">{{ cert.name }}</a>
       </td>
       <td>{{ cert.skills }}</td>
       <td>{{ cert.modified }}</td>
+      <td>
+        <a href="/certs?action=edit&id={{ cert.id }}">Edit</a>
+      </td>
       <td>
         <a href="/certs?action=remove&id={{ cert.id }}">Remove</a>
       </td>
@@ -26,13 +30,11 @@
   </tbody>
 </table>
 
-<hr />
-
 <form action="/certs" method="POST" class="form-inline">
 <fieldset>
   <legend>Add a new certification</legend>
 
-  <input id="new_cert_name" name="name" class="input-xxlarge"
+  <input id="new_cert_name" name="name" class="span8"
     type="text" placeholder="Certification name" />
 
   <input type="submit" value="Add Certification" class="btn" />

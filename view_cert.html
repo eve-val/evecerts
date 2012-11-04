@@ -2,38 +2,50 @@
 {% set title = cert.name %}
 {% block content %}
 {% if characters %}
-{% if active_character %}
-Showing progress for <strong>{{ active_character.name }}</strong> -
-{% endif %}
-<form class="form-inline">
+<form class="form-inline" action="/cert" method="GET">
 <fieldset>
-  <select name="character">
-    {% for character in characters %}
-    <option value="{{ character.char_id }}">{{ character.name }}</option>
-    {% endfor %}
-  </select>
-  <input type="submit" value="Show Completion" />
+  <div class="input-append pull-right">
+    <select name="character">
+      {% for character in characters %}
+      <option value="{{ character.char_id }}"
+        {% if active_character and character.name == active_character.name %}selected{% endif %}>
+        {{ character.name }}
+      </option>
+      {% endfor %}
+    </select>
+    <input class="btn" type="submit" value="Show Progress" />
+  </div>
+  {% if active_character %}
+  <span class="btn btn-primary disabled">Showing progress for <strong>{{ active_character.name }}</strong>.</span>
+  {% else %}
+  <span class="btn disabled">Select a character to show progress towards completion.</span>
+  {% endif %}
   <input type="hidden" name="id" value="{{ cert.key().id() }}" />
 </fieldset>
 </form>
 {% else %}
-<p>Log in and add an API key to compare your character's progress towards completing this certification.</p>
+<p><a href="/apikeys">Add an API key</a> to compare your character's
+progress towards completing this certification.</p>
 {% endif %}
 <hr />
 <table class="table table-hover">
   <thead>
     <tr>
       <th>Skill</th>
-      <th>Required Rank</th>
+      {% if active_character %}
       <th>Trained Rank</th>
+      {% endif %}
+      <th>Required Rank</th>
     </tr>
   </thead>
   <tbody>
     {% for skill in skills %}
     <tr class="{{ skill.row_class }}">
       <td>{{ skill.name }}</td>
-      <td>{{ skill.rank }}</td>
+      {% if active_character %}
       <td>{{ skill.display_rank or "?" }}</td>
+      {% endif %}
+      <td>{{ skill.rank }}</td>
     </tr>
     {% endfor %}
   </tbody>

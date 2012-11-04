@@ -196,6 +196,7 @@ class SkillTreeHandler(webapp2.RequestHandler):
   @classmethod
   def cache_skill_data(cls, treedata):
     memcache.set(cls.SKILL_TREE_CACHE_KEY, treedata)
+    memcache.delete(CertificationsHandler.SKILL_GROUP_CACHE_KEY)
     cls.get_skill_data()
 
   @classmethod
@@ -219,6 +220,8 @@ class SkillTreeHandler(webapp2.RequestHandler):
 class CertificationsHandler(webapp2.RequestHandler):
 
   CERT_LIST_CACHE_KEY_FORMAT = "cert-list-1-%s"
+  CERT_SKILLS_CACHE_KEY_FORMAT = "cert-skills-1-%s"
+  SKILL_GROUPS_CACHE_KEY = 'skill-groups'
 
   def get(self):
     action = self.request.get('action')
@@ -290,25 +293,32 @@ class CertificationsHandler(webapp2.RequestHandler):
 
     skill_tree, skill_names = SkillTreeHandler.get_skill_data()
 
-    skills = []
-    for skill in cert.required_skills:
-      skills.append({
-        'name': skill_names[skill.skill_id],
-        'rank': skill.level,
-        'id': skill.skill_id,
-      })
+    mc_key = self.CERT_SKILLS_CACHE_KEY_FORMAT % cert_id
+    skills = memcache.get(mc_key)
+    if not skills:
+      skills = []
+      for skill in cert.required_skills:
+        skills.append({
+          'name': skill_names[skill.skill_id],
+          'rank': skill.level,
+          'id': skill.skill_id,
+        })
+      memcache.set(mc_key, skills)
 
-    skillgroups = []
-    for group in skill_tree.itervalues():
-      s = [s for s in group['skills'].itervalues() if s['published']]
-      if not s:
-        continue
-      skillgroup = {
-        'name': group['name'],
-        'skills': sorted(s, key=lambda x: x['name'])
-      }
-      skillgroups.append(skillgroup)
-    skillgroups.sort(key=lambda x: x['name'])
+    skillgroups = memcache.get(self.SKILL_GROUPS_CACHE_KEY)
+    if not skillgroups:
+      skillgroups = []
+      for group in skill_tree.itervalues():
+        s = [s for s in group['skills'].itervalues() if s['published']]
+        if not s:
+          continue
+        skillgroup = {
+          'name': group['name'],
+          'skills': sorted(s, key=lambda x: x['name'])
+        }
+        skillgroups.append(skillgroup)
+      skillgroups.sort(key=lambda x: x['name'])
+      memcache.set(self.SKILL_GROUPS_CACHE_KEY, skillgroups)
 
     data = {
       'cert': cert,
@@ -350,6 +360,8 @@ class CertificationsHandler(webapp2.RequestHandler):
       skill_id=skill_id, level=rank, cert=cert)
     required_skill.put()
 
+    memcache.delete(self.CERT_SKILLS_CACHE_KEY_FORMAT % cert_id)
+
     return self.redirect("/certs?action=edit&id=%d" % cert_id)
 
   def remove_skill(self):
@@ -366,9 +378,11 @@ class CertificationsHandler(webapp2.RequestHandler):
         skill.delete()
         break
 
+    memcache.delete(self.CERT_SKILLS_CACHE_KEY_FORMAT % cert_id)
+
     return self.redirect("/certs?action=edit&id=%d" % cert_id)
 
-class ProgressHandler(webapp2.RequestHandler):
+class CertificationHandler(webapp2.RequestHandler):
 
   ranks = {
     -1: '-',
@@ -400,7 +414,7 @@ class ProgressHandler(webapp2.RequestHandler):
       keys = models.APIKey.all().filter("owner =", user)
       for key in keys:
         characters.extend(key.character_set)
-      characters.sort()
+      characters.sort(key=lambda c:c.name)
     else:
       characters = []
 
@@ -437,7 +451,7 @@ class ProgressHandler(webapp2.RequestHandler):
         break
 
     if character is None:
-      return self.error(403)
+      return self.redirect("/progress?id=%d" % data['cert'].key().id())
 
     key = character.api_key
 
@@ -452,9 +466,11 @@ class ProgressHandler(webapp2.RequestHandler):
     for skill in data['skills']:
       skill['trained_rank'] = skill_to_rank.get(skill['id'], -1)
       skill['display_rank'] = self.ranks[skill['trained_rank']]
-      if skill['trained_rank'] > skill['rank']:
+      if skill['trained_rank'] >= skill['rank']:
         skill['row_class'] = 'success'
       elif skill['trained_rank'] > 0:
+        skill['row_class'] = 'warning'
+      elif skill['trained_rank'] == 0:
         skill['row_class'] = 'warning'
       else:
         skill['row_class'] = 'error'
@@ -470,7 +486,7 @@ application = webapp2.WSGIApplication(
     ('/apikeys', APIKeysHandler),
     ('/certs', CertificationsHandler),
     ('/skilltree', SkillTreeHandler),
-    ('/progress', ProgressHandler),
+    ('/cert', CertificationHandler),
     ('/', HomeHandler),
   ],
   debug=True,
