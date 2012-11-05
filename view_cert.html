@@ -63,4 +63,24 @@ progress towards completing this certification.</p>
     {% endfor %}
   </tbody>
 </table>
+<form class="form" action="javascript:function(){return false;}">
+  <legend>Share this certification</legend>
+  <fieldset>
+  {% if owner %}
+  <div class="input-append">
+    <input type="text" class="span11" value="{{ sharelink }}" />
+    <div class="add-on"><a href="/certs?action=resetlink&id={{ cert.key().id() }}">Reset Link</a></div>
+  </div>
+  {% else %}
+  <input type="text" class="span12" value="{{ sharelink }}" />
+  {% endif %}
+  {% if cert.public %}
+  <span class="help-block">This is a <strong>Public</strong> certification.
+  Public certifications are visible to anyone.</span>
+  {% else %}
+  <span class="help-block">This is a <strong>Private</strong> certification.
+  Private certifications can only be viewed by the owner and those who have the above link.</span>
+  {% endif %}
+  </fieldset>
+</form>
 {% endblock %}

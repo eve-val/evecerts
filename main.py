@@ -1,8 +1,10 @@
 import json
 import os
+import random
 import re
+import string
 
-from google.appengine.api import memcache, users
+from google.appengine.api import app_identity, memcache, users
 from google.appengine.ext import db
 import jinja2
 import webapp2
@@ -10,6 +12,10 @@ import webapp2
 import evelink
 from evelink import appengine as elink_appengine
 import models
+
+def random_string(N):
+  choices = string.ascii_letters + string.digits
+  return ''.join(random.choice(choices) for _ in range(N))
 
 jinja_environment = jinja2.Environment(
   loader=jinja2.FileSystemLoader(os.path.dirname(__file__)))
@@ -233,8 +239,12 @@ class CertificationsHandler(webapp2.RequestHandler):
 
     if action == 'edit':
       return self.edit_cert()
-    if action == 'removeskill':
+    elif action == 'removeskill':
       return self.remove_skill()
+    elif action == 'togglelock':
+      return self.toggle_lock()
+    elif action == 'resetlink':
+      return self.reset_link()
 
     return self.list_certs()
 
@@ -262,6 +272,8 @@ class CertificationsHandler(webapp2.RequestHandler):
           'id': cert.key().id(),
           'modified': cert.modified.strftime("%x %X"),
           'skills': cert.required_skills.count(),
+          'public': cert.public,
+          'authkey': cert.authkey,
         }
         certs.append(cert_data)
       template = jinja_environment.get_template("certs.html")
@@ -283,8 +295,7 @@ class CertificationsHandler(webapp2.RequestHandler):
     cert = models.Certification(name=name, owner=user)
     cert.put()
 
-    mc_key = self.CERT_LIST_CACHE_KEY_FORMAT % user.user_id()
-    memcache.delete(mc_key)
+    memcache.delete(CERT_LIST_CACHE_KEY_FORMAT % user.user_id())
 
     self.redirect("/certs?action=edit&id=%d" % cert.key().id())
 
@@ -387,6 +398,44 @@ class CertificationsHandler(webapp2.RequestHandler):
 
     return self.redirect("/certs?action=edit&id=%d" % cert_id)
 
+  def toggle_lock(self):
+    user = users.get_current_user()
+    cert_id = int(self.request.get('id'))
+
+    cert = models.Certification.get_by_id(cert_id)
+    if not cert or cert.owner != user:
+      return self.error(403)
+
+    if cert.public:
+      cert.public = False
+      if not cert.authkey:
+        cert.authkey = random_string(8)
+    else:
+      cert.public = True
+
+    cert.put()
+
+    memcache.delete(self.CERT_LIST_CACHE_KEY_FORMAT % user.user_id())
+
+    return self.redirect("/certs")
+
+  def reset_link(self):
+    user = users.get_current_user()
+    cert_id = int(self.request.get('id'))
+
+    cert = models.Certification.get_by_id(cert_id)
+    if not cert or cert.owner != user:
+      return self.error(403)
+
+    cert.authkey = random_string(8)
+    cert.put()
+
+    memcache.delete(self.CERT_LIST_CACHE_KEY_FORMAT % user.user_id())
+
+    return self.redirect("/cert?id=%d" % cert.key().id())
+
+
+
 class CertificationHandler(webapp2.RequestHandler):
 
   ranks = {
@@ -414,6 +463,11 @@ class CertificationHandler(webapp2.RequestHandler):
       return self.error(404)
 
     user = users.get_current_user()
+    if not cert.public and cert.owner != user:
+      authkey = self.request.get('auth')
+      if authkey != cert.authkey:
+        return self.error(403)
+
     if user:
       characters = []
       keys = models.APIKey.all().filter("owner =", user)
@@ -433,8 +487,15 @@ class CertificationHandler(webapp2.RequestHandler):
         'id': skill.skill_id,
       })
 
+    sharelink = "%s.appspot.com/cert?id=%d" % (
+      app_identity.get_application_id(), cert.key().id())
+    if not cert.public:
+      sharelink += "&auth=%s" % cert.authkey
+
     data = {
       'cert': cert,
+      'sharelink': sharelink,
+      'owner': cert.owner == user,
       'characters': characters,
       'skills': skills,
     }

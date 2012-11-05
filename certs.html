@@ -7,6 +7,7 @@
       <th>Certification Name</th>
       <th># of Skills</th>
       <th>Last Modified</th>
+      <th>Public?</th>
       <th>&nbsp;</th>
       <th>&nbsp;</th>
     </tr>
@@ -15,10 +16,12 @@
     {% for cert in certs %}
     <tr>
       <td>
-        <a href="/cert?id={{ cert.id }}">{{ cert.name }}</a>
+        <a href="/cert?id={{ cert.id }}{% if not cert.public %}&auth={{ cert.authkey }}{% endif %}">{{ cert.name }}</a>
       </td>
       <td>{{ cert.skills }}</td>
       <td>{{ cert.modified }}</td>
+      <td><a href="/certs?action=togglelock&id={{ cert.id }}">
+        <i class="{{ "icon-ok" if cert.public else "icon-lock" }}"></i></a></td>
       <td>
         <a href="/certs?action=edit&id={{ cert.id }}">Edit</a>
       </td>
@@ -29,6 +32,10 @@
     {% endfor %}
   </tbody>
 </table>
+<div class="row">
+<p class="span12" style="text-align: center;">To toggle whether a certification is public or not, click on the
+<i class="icon-ok"></i>/<i class="icon-lock"></i> icon.</p>
+</div>
 
 <form action="/certs" method="POST" class="form-inline">
 <fieldset>

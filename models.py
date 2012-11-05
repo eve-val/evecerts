@@ -14,6 +14,8 @@ class Certification(db.Model):
   name = db.StringProperty(required=True)
   owner = db.UserProperty(required=True)
   modified = db.DateTimeProperty(auto_now=True)
+  authkey = db.StringProperty(default="")
+  public = db.BooleanProperty(default=True)
 
 class RequiredSkill(db.Model):
   skill_id = db.IntegerProperty(required=True)
