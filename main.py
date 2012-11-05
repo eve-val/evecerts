@@ -239,6 +239,8 @@ class CertificationsHandler(webapp2.RequestHandler):
 
     if action == 'edit':
       return self.edit_cert()
+    elif action == 'remove':
+      return self.remove_cert()
     elif action == 'removeskill':
       return self.remove_skill()
     elif action == 'togglelock':
@@ -298,6 +300,19 @@ class CertificationsHandler(webapp2.RequestHandler):
     memcache.delete(self.CERT_LIST_CACHE_KEY_FORMAT % user.user_id())
 
     self.redirect("/certs?action=edit&id=%d" % cert.key().id())
+
+  def remove_cert(self):
+    user = users.get_current_user()
+    cert_id = int(self.request.get('id'))
+
+    cert = models.Certification.get_by_id(cert_id)
+    if cert:
+      cert.delete()
+
+      memcache.delete(self.CERT_SKILLS_CACHE_KEY_FORMAT % cert_id)
+      memcache.delete(self.CERT_LIST_CACHE_KEY_FORMAT % user.user_id())
+
+    self.redirect("/certs")
 
   def edit_cert(self):
     user = users.get_current_user()
