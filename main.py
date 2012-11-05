@@ -295,7 +295,7 @@ class CertificationsHandler(webapp2.RequestHandler):
     cert = models.Certification(name=name, owner=user)
     cert.put()
 
-    memcache.delete(CERT_LIST_CACHE_KEY_FORMAT % user.user_id())
+    memcache.delete(self.CERT_LIST_CACHE_KEY_FORMAT % user.user_id())
 
     self.redirect("/certs?action=edit&id=%d" % cert.key().id())
 
