@@ -228,6 +228,31 @@ class SkillTreeHandler(webapp2.RequestHandler):
 
     return treedata, skill_names
 
+class PublicCertificationsHandler(webapp2.RequestHandler):
+  CERT_PUBLIC_LIST_CACHE_KEY = "cert-public-list"
+
+  def get(self):
+    return self.list_public_certs()
+
+  def list_public_certs(self):
+    mc_key = self.CERT_PUBLIC_LIST_CACHE_KEY
+    page = memcache.get(mc_key)
+
+    if not page:
+      certs = []
+      for cert in models.Certification.all().filter("public =", True):
+        cert_data = {
+          'name': cert.name,
+          'id': cert.key().id(),
+          'modified': cert.modified.strftime("%x %X"),
+        }
+        certs.append(cert_data)
+      template = jinja_environment.get_template("public_certs.html")
+      page = template.render({'certs': certs})
+      memcache.set(mc_key, page)
+
+    self.response.out.write(page)
+
 class CertificationsHandler(webapp2.RequestHandler):
 
   CERT_LIST_CACHE_KEY_FORMAT = "cert-list-1-%s"
@@ -262,8 +287,8 @@ class CertificationsHandler(webapp2.RequestHandler):
 
   def list_certs(self):
     user = users.get_current_user()
-    mc_key = self.CERT_LIST_CACHE_KEY_FORMAT % user.user_id()
 
+    mc_key = self.CERT_LIST_CACHE_KEY_FORMAT % user.user_id()
     page = memcache.get(mc_key)
 
     if not page:
@@ -298,6 +323,7 @@ class CertificationsHandler(webapp2.RequestHandler):
     cert.put()
 
     memcache.delete(self.CERT_LIST_CACHE_KEY_FORMAT % user.user_id())
+    memcache.delete(PublicCertificationsHandler.CERT_PUBLIC_LIST_CACHE_KEY)
 
     self.redirect("/certs?action=edit&id=%d" % cert.key().id())
 
@@ -311,6 +337,7 @@ class CertificationsHandler(webapp2.RequestHandler):
 
       memcache.delete(self.CERT_SKILLS_CACHE_KEY_FORMAT % cert_id)
       memcache.delete(self.CERT_LIST_CACHE_KEY_FORMAT % user.user_id())
+      memcache.delete(PublicCertificationsHandler.CERT_PUBLIC_LIST_CACHE_KEY)
 
     self.redirect("/certs")
 
@@ -431,6 +458,7 @@ class CertificationsHandler(webapp2.RequestHandler):
     cert.put()
 
     memcache.delete(self.CERT_LIST_CACHE_KEY_FORMAT % user.user_id())
+    memcache.delete(PublicCertificationsHandler.CERT_PUBLIC_LIST_CACHE_KEY)
 
     return self.redirect("/certs")
 
@@ -583,6 +611,7 @@ application = webapp2.WSGIApplication(
   [
     ('/apikeys', APIKeysHandler),
     ('/certs', CertificationsHandler),
+    ('/browse', PublicCertificationsHandler),
     ('/skilltree', SkillTreeHandler),
     ('/cert', CertificationHandler),
     ('/', HomeHandler),
