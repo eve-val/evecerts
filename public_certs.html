@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% set title = "My Certifications" %}
+{% block content %}
+<table class="table table-hover">
+  <thead>
+    <tr>
+      <th>Certification Name</th>
+      <th>Last Modified</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for cert in certs %}
+    <tr>
+      <td>
+        <a href="/cert?id={{ cert.id }}">{{ cert.name }}</a>
+      </td>
+      <td>{{ cert.modified }}</td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+<form action="/certs" method="POST" class="form-inline">
+<fieldset>
+  <legend>Add a new certification</legend>
+
+  <input id="new_cert_name" name="name" class="span8"
+    type="text" placeholder="Certification name" />
+
+  <input type="submit" value="Add Certification" class="btn" />
+
+  <input type="hidden" name="action" value="add" />
+</fieldset>
+</form>
+{% endblock %}
