@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% set title = "My Certifications" %}
+{% set title = "Public Certifications" %}
 {% block content %}
 <table class="table table-hover">
   <thead>
@@ -19,17 +19,4 @@
     {% endfor %}
   </tbody>
 </table>
-
-<form action="/certs" method="POST" class="form-inline">
-<fieldset>
-  <legend>Add a new certification</legend>
-
-  <input id="new_cert_name" name="name" class="span8"
-    type="text" placeholder="Certification name" />
-
-  <input type="submit" value="Add Certification" class="btn" />
-
-  <input type="hidden" name="action" value="add" />
-</fieldset>
-</form>
 {% endblock %}
