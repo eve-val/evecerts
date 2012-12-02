@@ -560,7 +560,7 @@ class CertificationHandler(webapp2.RequestHandler):
         break
 
     if character is None:
-      return self.redirect("/progress?id=%d" % data['cert'].key().id())
+      return self.redirect("/cert?id=%d" % data['cert'].key().id())
 
     key = character.api_key
 
