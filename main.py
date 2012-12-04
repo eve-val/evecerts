@@ -240,7 +240,9 @@ class PublicCertificationsHandler(webapp2.RequestHandler):
 
     if not page:
       certs = []
-      for cert in models.Certification.all().filter("public =", True):
+      cert_query = models.Certification.all().filter("public =", True)
+      cert_query = cert_query.order('-modified').run(limit=100)
+      for cert in cert_query:
         cert_data = {
           'name': cert.name,
           'id': cert.key().id(),
