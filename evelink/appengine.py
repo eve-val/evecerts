@@ -8,8 +8,9 @@ import time
 
 class AppEngineAPI(api.API):
     """Subclass of api.API that is compatible with Google Appengine."""
-    def __init__(self, base_url="api.eveonline.com", cache=None, api_key=None):
+    def __init__(self, base_url="api.eveonline.com", cache=None, api_key=None, deadline=None):
         cache = cache or AppEngineCache()
+        self.deadline = deadline
         super(AppEngineAPI, self).__init__(base_url=base_url,
                 cache=cache, api_key=api_key)
 
@@ -27,7 +28,8 @@ class AppEngineAPI(api.API):
                 payload=params,
                 method=urlfetch.POST if params else urlfetch.GET,
                 headers={'Content-Type': 'application/x-www-form-urlencoded'}
-                        if params else {}
+                        if params else {},
+                deadline=self.deadline,
                 )
         if result.status_code != 200:
             raise ValueError("Bad result from server: {}".format(result.status_code))

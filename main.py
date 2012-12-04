@@ -190,7 +190,7 @@ class SkillTreeHandler(webapp2.RequestHandler):
   def get(self):
     skilltree = models.SkillTree.all().get()
 
-    elink_api = elink_appengine.AppEngineAPI()
+    elink_api = elink_appengine.AppEngineAPI(deadline=20)
     elink_eve = evelink.eve.EVE(api=elink_api)
     treedata = elink_eve.skill_tree()
     SkillTreeHandler.cache_skill_data(treedata)
