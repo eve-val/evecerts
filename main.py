@@ -532,7 +532,7 @@ class CertificationHandler(webapp2.RequestHandler):
         'id': skill.skill_id,
       })
 
-    sharelink = "%s.appspot.com/cert?id=%d" % (
+    sharelink = "http://%s.appspot.com/cert?id=%d" % (
       app_identity.get_application_id(), cert.key().id())
     if not cert.public:
       sharelink += "&auth=%s" % cert.authkey
