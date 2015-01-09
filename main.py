@@ -568,7 +568,11 @@ class CertificationHandler(webapp2.RequestHandler):
 
     elink_api = elink_appengine.AppEngineAPI(api_key=(key.key_id, key.vcode))
     elink_char = evelink.char.Char(character.char_id, api=elink_api)
-    charsheet = elink_char.character_sheet().result
+    try:
+      charsheet = elink_char.character_sheet().result
+    except evelink.api.APIError as e:
+      self.response.out.write(str(e))
+      return
 
     skill_to_rank = {}
     for skill in charsheet['skills']:
