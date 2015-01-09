@@ -598,8 +598,8 @@ class CertificationHandler(webapp2.RequestHandler):
         skill['row_class'] = 'error'
 
     percents = {
-      'green': 100 * totals['green'] / totals['overall'],
-      'yellow': 100 * totals['yellow'] / totals['overall'],
+      'green': 100 * totals['green'] / totals['overall'] if totals['overall'] else 100,
+      'yellow': 100 * totals['yellow'] / totals['overall'] if totals['overall'] else 0,
     }
 
     data['active_character'] = character
