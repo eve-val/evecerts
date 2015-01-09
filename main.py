@@ -153,7 +153,7 @@ class APIKeysHandler(webapp2.RequestHandler):
   def refresh_characters(self, user, key):
     elink_api = elink_appengine.AppEngineAPI(api_key=(key.key_id, key.vcode))
     elink_account = evelink.account.Account(api=elink_api)
-    info = elink_account.key_info()
+    info = elink_account.key_info().result
 
     if not (info['access_mask'] & 8):
       self.error(500)
@@ -192,7 +192,7 @@ class SkillTreeHandler(webapp2.RequestHandler):
 
     elink_api = elink_appengine.AppEngineAPI(deadline=20)
     elink_eve = evelink.eve.EVE(api=elink_api)
-    treedata = elink_eve.skill_tree()
+    treedata = elink_eve.skill_tree().result
     SkillTreeHandler.cache_skill_data(treedata)
 
     if skilltree:
@@ -568,7 +568,7 @@ class CertificationHandler(webapp2.RequestHandler):
 
     elink_api = elink_appengine.AppEngineAPI(api_key=(key.key_id, key.vcode))
     elink_char = evelink.char.Char(character.char_id, api=elink_api)
-    charsheet = elink_char.character_sheet()
+    charsheet = elink_char.character_sheet().result
 
     skill_to_rank = {}
     for skill in charsheet['skills']:
